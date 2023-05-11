@@ -1,20 +1,31 @@
 <script setup lang="ts">
-interface BlockStatus {
+interface BlockState {
   x: number
   y: number
   revealed: boolean
   mine: boolean
-  flag?: boolean
+  flagged?: boolean
   adjacent: number
 }
 
+type TravleCallback = (block: BlockState, x: number, y: number) => void
+
+const dev = false
 const WIDTH = $ref(10)
 const HEIGHT = $ref(10)
-const totalMines = $ref(20)
+const totalMines = $ref(5)
 
-const blocks = reactive(Array.from({ length: WIDTH }, (_, y) => Array.from({ length: HEIGHT }, (_, x): BlockStatus => ({ x, y, adjacent: 0, revealed: false, mine: false }))))
+const blocks = reactive(Array.from({ length: WIDTH }, (_, y) => Array.from({ length: HEIGHT }, (_, x): BlockState => ({ x, y, adjacent: 0, revealed: false, mine: false }))))
 
-function onClick(block: BlockStatus) {
+function travelBlocks(cb: TravleCallback) {
+  blocks.forEach((row, y) => {
+    row.forEach((block, x) => {
+      cb(block, x, y)
+    })
+  })
+}
+
+function onClick(block: BlockState) {
   if (block.mine) {
     block.revealed = true
     alert('你死了')
@@ -25,6 +36,13 @@ function onClick(block: BlockStatus) {
     expandZero(block)
   else
     block.revealed = true
+}
+
+function onRightClick(block: BlockState) {
+  if (block.revealed)
+    return
+
+  block.flagged = !block.flagged
 }
 
 function generateMines() {
@@ -43,27 +61,24 @@ function generateMines() {
 generateMines()
 
 function updateAdjacentNumber() {
-  blocks.forEach((row, y) => {
-    row.forEach((block, x) => {
-      if (block.mine)
-        return
+  travelBlocks((block, x, y) => {
+    if (block.mine)
+      return
 
-      let adjacent = 0
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          const targetX = x + i
-          const targetY = y + j
-          if (targetX < 0 || targetX >= WIDTH || targetY < 0 || targetY >= HEIGHT)
-            continue
+    let adjacent = 0
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        const targetX = x + j
+        const targetY = y + i
+        if (targetX < 0 || targetX >= WIDTH || targetY < 0 || targetY >= HEIGHT || (targetX === x && targetY === y))
+          continue
 
-          if (blocks[targetX][targetY].mine) {
-            adjacent++
-          }
-        }
+        if (blocks[targetY][targetX].mine)
+          adjacent++
       }
+    }
 
-      block.adjacent = adjacent
-    })
+    block.adjacent = adjacent
   })
 }
 
@@ -79,14 +94,18 @@ const colorList = [
   'text-pink-500',
   'text-indigo-500',
 ]
-function getBlockColor(block: BlockStatus) {
+function getBlockColor(block: BlockState) {
+  if (block.flagged)
+    return 'bg-gray-500/10'
+  if (!block.revealed)
+    return 'bg-gray-500/10 hover:bg-gray-500/20'
   if (block.mine)
-    return 'text-red-500'
+    return 'bg-red-500'
 
   return colorList[block.adjacent - 1]
 }
 
-function expandZero(block: BlockStatus) {
+function expandZero(block: BlockState) {
   if (block.revealed)
     return
 
@@ -94,12 +113,12 @@ function expandZero(block: BlockStatus) {
   if (block.adjacent === 0) {
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
-        const targetX = block.x + i
-        const targetY = block.y + j
-        if (targetX < 0 || targetX >= WIDTH || targetY < 0 || targetY >= HEIGHT)
+        const targetX = block.x + j
+        const targetY = block.y + i
+        if (targetX < 0 || targetX >= WIDTH || targetY < 0 || targetY >= HEIGHT || (targetX === block.x && targetY === block.y))
           continue
 
-        expandZero(blocks[targetX][targetY])
+        expandZero(blocks[targetY][targetX])
       }
     }
   }
@@ -108,24 +127,26 @@ function expandZero(block: BlockStatus) {
 
 <template>
   <main font-sans p="x-4 y-10" text="center gray-700 dark:gray-200">
-    <div v-for="row, y in blocks" :key="y" flex="~" item->
-      <div v-for="block, x in row" :key="x">
-        <button h-10 w-10 border hover:bg-gray @click="onClick(block)">
-          <template v-if="block.revealed">
+    <div v-for="row, y in blocks" :key="y" flex="~" items-center justify-center>
+      <div v-for="block, x in row" :key="x" flex="~" items-center justify-center>
+        <div :class="getBlockColor(block)" flex="~" border="1 gray-400/10" h-10 w-10 cursor-pointer items-center justify-center @click="onClick(block)" @contextmenu.prevent="onRightClick(block)">
+          <template v-if="block.revealed || dev">
             <template v-if="block.mine">
-              <div i-mdi-mine :class="getBlockColor(block)" />
+              <div i-mdi-mine />
             </template>
             <template v-else>
-              <div :class="getBlockColor(block)">
+              <div>
                 {{ block.adjacent }}
               </div>
             </template>
           </template>
-        </button>
+          <template v-else-if="block.flagged">
+            <div i-mdi-flag text-red />
+          </template>
+        </div>
       </div>
     </div>
 
-    <pre>{{ blocks }}</pre>
     <TheFooter />
   </main>
 </template>
