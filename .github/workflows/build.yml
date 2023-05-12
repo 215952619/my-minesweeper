@@ -11,13 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout
 
       - name: Build
-        uses: JamesIves/github-pages-deploy-action@master
-        env:
-          ACCESS_TOKEN: ${{ secrets.MY_MINE_SWEEPER_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: dist
-          BUILD_SCRIPT: pnpm i && pnpm run build
-
+        run: echo ${{ secrets.MY_MINE_SWEEPER_TOKEN }}
