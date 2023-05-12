@@ -14,4 +14,6 @@ jobs:
         uses: actions/checkout@main
 
       - name: Build
-        run: echo ${{ secrets.MY_MINE_SWEEPER_TOKEN }}
+        run:
+          echo print test.
+          echo ${{ secrets.MY_MINE_SWEEPER_TOKEN }}
