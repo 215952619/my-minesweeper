@@ -15,7 +15,7 @@ jobs:
 
       - name: Build
         uses: JamesIves/github-pages-deploy-action@master
-        envs:
+        env:
           ACCESS_TOKEN: ${{ secrets.MY_MINE_SWEEPER_TOKEN }}
           BRANCH: gh-pages
           FOLDER: dist
